@@ -1,4 +1,4 @@
-"use client";
+// client/pages/demo/encrypt-image/index.tsx
 import Image from "next/image";
 import React, { useState } from "react";
 import { CardBody, CardContainer, CardItem } from "../../../components/ui/3d-card";
@@ -86,7 +86,7 @@ function EncryptImage() {
       }
     });
     formData.append('password', password);
-    const process_request = await fetch("http://localhost:5000/encrypt_images", {
+    const process_request = await fetch("/api/encrypt_images", { // Updated API endpoint
       method: "POST",
       body: formData,
     });

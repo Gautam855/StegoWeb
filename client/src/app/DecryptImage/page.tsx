@@ -1,21 +1,12 @@
-"use client";
+// client/pages/demo/decrypt-image/index.tsx
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
-import { CardBody, CardContainer, CardItem } from "../../../components/ui/3d-card";
-import Link from "next/link";
-import {NavbarDemo} from "../nav";
+import React, { useState } from "react";
 import Swal from 'sweetalert2';
 import '@sweetalert2/theme-dark/dark.scss';
 import { cn } from "../../../utils/cn";
 import { BackgroundBeams} from "../../../components/ui/background-beams";
-import { Label } from "../../../components/ui/label";
-import { Textarea } from "../../../components/ui/input";
-import {
-  IconBrandGithub,
-  IconBrandGoogle,
-  IconBrandOnlyfans,
-} from "@tabler/icons-react";
-import axios from 'axios';
+import { NavbarDemo} from "../nav";
+import { CardBody, CardContainer, CardItem } from "../../../components/ui/3d-card";
 
 function DecryptImage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -34,7 +25,6 @@ function DecryptImage() {
 
   const handleShowImage = async () => {
     try {
-
       const { value: password } = await Swal.fire({
         title: "Enter your password",
         input: "password",
@@ -46,7 +36,8 @@ function DecryptImage() {
           autocorrect: "off"
         }
       });
-         if (!password) {
+      
+      if (!password) {
         Swal.fire({
           title: 'Error!',
           text: 'Password is required',
@@ -59,7 +50,7 @@ function DecryptImage() {
       const formData = new FormData();
       formData.append("image", dataURLtoFile(selectedImage!, "image.png"));
       formData.append("password", password);
-      const response = await fetch("http://localhost:5000/decrypt_Image", {
+      const response = await fetch("/api/decrypt_Image", { // Updated API endpoint
         method: "POST",
         body: formData,
       });
@@ -74,19 +65,20 @@ function DecryptImage() {
           icon: 'success',
           confirmButtonText: 'Cool'
         })
-      } 
+      } else {
+        throw new Error('Failed to decrypt image');
+      }
     } catch (error) {
       Swal.fire({
         title: 'Error',
         text: `Failed to Decrypt the Image ${error}`,
         icon: 'error',
-        })
+      })
     }
   };
 
   const handleDownloadImage = () => {
-
-    if(decryptedImage===null){
+    if (decryptedImage === null) {
       Swal.fire({
         title: 'Error!',
         text: 'First decrypt the Image',
@@ -95,18 +87,16 @@ function DecryptImage() {
       })
       return;
     }
-   
-      const link = document.createElement("a");
-      link.href = decryptedImage;
-      link.download = "decrypted_image.png";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    
+
+    const link = document.createElement("a");
+    link.href = decryptedImage;
+    link.download = "decrypted_image.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const dataURLtoFile = (dataurl: string, filename: string) => {
-   
     const arr = dataurl.split(",");
     const mime = arr[0].match(/:(.*?);/)![1];
     const bstr = atob(arr[1]);
@@ -261,4 +251,3 @@ function ThreeDCardDemo2({
 }
 
 export default DecryptImage;
-

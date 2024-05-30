@@ -1,12 +1,13 @@
-from flask import Flask, request, send_file, jsonify
+# serverless.py
+from flask_like import Flask, request, send_file, jsonify
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
 from stegano import lsb
-from PIL import Image, ImageTk
 import base64
-from vigenre import encrypt_vigenere, decrypt_vigenere
-from flask_cors import CORS
 from io import BytesIO
+from PIL import Image
+from vigenre import encrypt_vigenere, decrypt_vigenere
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -19,7 +20,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/encrypt_text', methods=['POST'])
+@app.route('/api/encrypt_text', methods=['POST'])
 def encrypt_text():
     try:
         # Retrieve image, text data, and password from the request
@@ -48,7 +49,7 @@ def encrypt_text():
 
     return send_file(encrypted_image_path, as_attachment=True)
 
-@app.route('/decrypt_text', methods=['POST'])
+@app.route('/api/decrypt_text', methods=['POST'])
 def decrypt_text():
     try:
         # Retrieve image and password from the request
@@ -84,8 +85,8 @@ def decrypt_text():
     except KeyError as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route('/decrypt_Image', methods=['POST'])
-def decrypt_Image():
+@app.route('/api/decrypt_image', methods=['POST'])
+def decrypt_image():
     try:
         # Retrieve image and password from the request
         if 'image' not in request.files:
@@ -108,27 +109,20 @@ def decrypt_Image():
                 return jsonify({"error": "No hidden message found"}), 400
 
             # Decrypt the base64-encoded image string
-            # decrypted_image_str = decrypt_vigenere(decrypted_image_base64, password)
-
-            # Check if the message contains the marker
             marker = "VALID:"
             if decrypted_image_str.startswith(marker):
                 decrypted_image_base64 = decrypted_image_str[len(marker):]
-                print(decrypted_image_base64)
                 decrypted_image_bytes = base64.b64decode(decrypted_image_base64)
                 decrypted_image_file = BytesIO(decrypted_image_bytes)
-                oimg = Image.open(decrypted_image_file)
+                decrypted_image = Image.open(decrypted_image_file)
 
-            # Convert to RGB mode
-                out_jpg = oimg.convert('RGB')
+                # Convert to RGB mode
+                decrypted_image_rgb = decrypted_image.convert('RGB')
 
-                secret_image10_path = os.path.join(app.config['UPLOAD_FOLDER'], 'secret_image10.png')
-                out_jpg.save(secret_image10_path)  # Clean up the saved file
-                return send_file(secret_image10_path, as_attachment=True)
-                # Return the decrypted image as a response
-                # return send_file(out_jpg, as_attachment=True, download_name='decrypted_image.png', mimetype='image/png')
+                secret_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'decrypted_image.png')
+                decrypted_image_rgb.save(secret_image_path)  # Clean up the saved file
+                return send_file(secret_image_path, as_attachment=True)
             else:
-                print("pass wrong")
                 os.remove(filepath)  # Clean up the saved file
                 return jsonify({"error": "Incorrect password"}), 400
         else:
@@ -138,7 +132,7 @@ def decrypt_Image():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/encrypt_images', methods=['POST'])
+@app.route('/api/encrypt_images', methods=['POST'])
 def encrypt_images():
     try:
         # Check if the post request has the file parts and password
@@ -166,31 +160,20 @@ def encrypt_images():
 
             # Encrypt the base64 string using the provided password
             marker = "VALID:"
-            print(image2_base64)
             encrypted_image2_base64 = marker + image2_base64
-            print("normal \n\n\n\n\n",encrypted_image2_base64)
-            # encrypted_image2_base64 = encrypt_vigenere(marked_image2_base64, password)
-            # print("encrypted \n\n\n\n\n",encrypted_image2_base64)
+
             # Hide the encrypted image string within the first image using LSB steganography
             secret_image = lsb.hide(filepath1, encrypted_image2_base64)
-            # temp=secret_image
-            # image2_base649 = base64.b64encode(temp.read()).decode('utf-8')
 
-            # image2_base64 = base64.b64encode(i_file.read()).decode('utf-8')
-
-            # print("secret \n\n\n\n\n\n",temp)
             # Save the resulting image
             secret_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'encoded_image.png')
             secret_image.save(secret_image_path)
 
             # Return the resulting image as an attachment
-            print("success")
-            # image2_base649 = base64.b64encode(secret_image.read()).decode('utf-8')
             return send_file(secret_image_path, as_attachment=True)
         else:
             return jsonify({"error": "Invalid file type"}), 400
     except Exception as e:
-        print(e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
